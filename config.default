@@ -1,0 +1,2 @@
+# .env
+REGISTERY = "direct:https://git.gaoding.com/tiege/simple-egg.git"
