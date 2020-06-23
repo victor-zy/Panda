@@ -1,7 +1,8 @@
 import { HandlerMetadata } from './HandlerMetadata';
 import { ControllerFilterMetadata } from './ControllerFilterMetadata';
-
 export class ControllerMetadata {
+    // 变量
+    // RegExp 正则表达式
     private _type: Function;
 
     private _baseUrl: string | RegExp;
@@ -14,28 +15,26 @@ export class ControllerMetadata {
 
     private _afterFilters: ControllerFilterMetadata[];
 
-    get type(): Function {
+    // 方法
+    get type() : Function {
         return this._type;
     }
 
     get baseUrl(): string | RegExp {
         return this._baseUrl;
     }
-
     set baseUrl(value: string | RegExp) {
-        this._baseUrl = value;
+        this._baseUrl = value ;
     }
 
     get isRest(): boolean {
         return this._isRest;
     }
-
-    set isRest(value: boolean) {
+    set isRest(value: boolean){
         this._isRest = value;
     }
 
-    // Map<actionName, {method; path;}>
-    get handlers(): Map<string, HandlerMetadata> {
+    get handlers(): Map <string, HandlerMetadata> {
         return this._handlers;
     }
 
@@ -52,15 +51,15 @@ export class ControllerMetadata {
 
         if (typeof baseUrl !== 'undefined') {
             this._baseUrl = baseUrl;
-        }
+        } 
 
         if (typeof isRest !== 'undefined') {
             this._isRest = isRest;
         }
 
         this._handlers = new Map();
-
         this._beforeFilters = [];
         this._afterFilters = [];
+
     }
 }

@@ -1,13 +1,14 @@
-import { FilterMetadata } from './FilterMetadata';
 import { FilterOptions } from './FilterOptions';
-
+import { FilterMetadata } from './FilterMetadata';
 export class ControllerFilterMetadata {
+    // 变量
     private _filterMetadata: FilterMetadata;
 
     private _only: string[];
 
     private _except: string[];
 
+    // 方法
     get filterMetadata(): FilterMetadata {
         return this._filterMetadata;
     }

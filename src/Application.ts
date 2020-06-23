@@ -1,114 +1,83 @@
-import { PluginContainer } from './plugins/PluginContainer';
-import { ApplifeCycle } from './lifecycle/AppLifecycle';
 import * as http from 'http';
 import * as Fs from 'fs';
-import * as path from 'path';
-import * as Koa from 'koa';
-import * as child_process from 'child_process';
-import { ApplicationRegistry } from './ApplicationRegistry';
-import { ConfigContainer } from './config/ConfigContainer';
-import { MiddlewreInitializer } from './initializer/MiddlewareInitializer';
-import { Router } from './plugins/Router';
+
 import { ControllerRegistry } from './core/ControllerRegistry';
-import { IAppConfig } from './config/interface/IAppConfig';
-import { IPluginConfig } from './config/interface/IPluginConfig';
+// import { AppBootHook } from './core/AppBootHook';
+import { Router } from './plugins/Router';
+import { MiddlewareInitializer } from './initializer/MiddlewareInitializer';
+import { ConfigContainer } from './config/ConfigContainer';
+import * as Koa from 'koa';
+import { ApplicationRegistry } from './ApplicationRegistry';
+import * as path from 'path';
 
 export class Application {
+    // 变量
     private _env: string;
 
-    // 项目根目录，默认是 process.cwd()
     private _rootDir: string = process.cwd();
 
-    // http-server 应用, koa底层
     private _server: http.Server;
     private _app: Koa;
 
-    // 配置文件夹
+    //配置文件夹
     private _configDir: string;
-
-    // 配置插件文件夹
-    private _pluginDir: string;
 
     // 配置管理器
     private _configs: typeof ConfigContainer;
 
-    // 插件配置管理器
-    private _plugins: typeof PluginContainer;
-
-    // private middleware: any [];
-
-    private _appConfig: IAppConfig;
-    private _pluginConfig: IPluginConfig;
-
-    private _lifecycle: any = new ApplifeCycle()
-
-    // 路由器
+    //路由器
     private _router = Router;
 
-    get configDir(): string {
-        return this._configDir;
-    }
+    // 设置configWillLoad和configdidLoad的状态值
+    // private readonly statusId:  number = 0 ;
 
-    get pluginDir(): string {
-        return this._pluginDir;
-    }
+    // 配置路径
 
-    get appConfig(): any {
-        return this._appConfig;
-    }
+    private _appConfig: string;
 
-    get pluginConfig(): any {
-        return this._pluginConfig;
-    }
 
-    get env() {
-        return this._env;
-    }
-
-    get rootDir() {
-        return this._rootDir;
-    }
-
+    // 方法
     get server() {
         return this._server;
-    }
-
-    get configs() {
-        return this._configs;
     }
 
     get koaApp() {
         return this._app;
     }
 
+    get configDir(): string {
+        return this._configDir;
+    }
+
+    get appConfig(): string {
+        return this._appConfig;
+    }
+
     get router() {
         return this._router;
     }
 
+    /**
+     * @description framework start 
+     * @author tiege 
+     * @private
+     * 
+     */
     async start() {
         await this._invokeApplicationInitHook();
-        const main = _ctx => {
-            _ctx.body = 'hello world';
-        };
-        this.use(main);
-        this._ready();
-        this._afterReady();
-        this._beforeClose();
     }
     /**
-     * 挂载回调函数
+     * framework 挂载点
      * @param fn 回调函数处理
      */
     use(fn: any) {
         this._app.use(fn);
     }
 
-
     /**
-     * @description create httpServer with koa
-     * @author tunan
+     * @description create httpServer with Koa 
+     * @author tiege 
      * @private
-     * @memberof Application
      */
     private _createServer() {
         this._app = new Koa();
@@ -116,36 +85,20 @@ export class Application {
     }
 
     /**
-     * @description 执行生命周期函数加载，并串行执行
-     * @author tunan
-     * @private
+     * @description 执行生命周期函数并加载，串行执行
      * @memberof Application
      */
     private async _invokeApplicationInitHook() {
-        // 初始化 http-server
+        // 初始化HTTP服务
         this._createServer();
-
         await this._init();
+        // await AppBootHook.configWillLoad();
         await this._configWillLoad();
         await this._configdidLoad(this.appConfig);
-        await this._pluginWillLoad();
-        await this._pluginDidLoad(this.pluginConfig);
-        // await this._ready();
-        // await this._afterReady();
+        await this.pluginWillLoad();
+        await this.pluginDidLoad();
         this.loadRoutes();
-    }
 
-    /**
-     * @description 执行插件生命周期函数加载
-     * @author tiege
-     * @private
-     * @memberof Application
-     */
-    private async _invokePluginInitHook() {
-        await this.init();
-        await configWillLoad(config);
-        await configDidLoad(config);
-        await willUpdate(preConfig,nextConfig)
     }
 
     private async loadRoutes() {
@@ -158,125 +111,308 @@ export class Application {
     }
 
     /**
-     * @description 私有生命周期函数，初始化状态
-     * @author tunan
-     * @private
-     * @memberof Application
+     * @description 生命周期函数初始化
+     * 
      */
     private async _init() {
         const settings = ApplicationRegistry.settings;
-        // console.log('_init 周期里面的A:', settings);
-
-        // 初始化配置目录
-        ['log', 'config', 'plugin'].map(item => {
-            // console.log('A.1:',item);
+        ['log', 'config'].map(item => {
+            // console.info(item);
             this[`_${item}Dir`] = settings[`${item}Dir`] || `${this._rootDir}/${item}`;
-            // console.log('A.2:',this[`_${item}Dir`])
-            // 目录不存在则创建目录
+
             if (!Fs.existsSync(this[`_${item}Dir`]) && this._env !== 'test') {
                 Fs.mkdirSync(this[`_${item}Dir`]);
             }
         });
 
-        // 加载默认 middlewares
-        MiddlewreInitializer.init(this);
-        // console.log('A.1:', arr);
+        MiddlewareInitializer.init(this);
 
-        // 执行 app init 方法
         'init' in this ? await (this as any).init() : null;
     }
 
     /**
-     * @function app-lifeCycle/configWillLoad
+     * @description 配置即将加载，这是修改配置的最后时机;在这里，注册是第二步，第一步我
+     * 想让它将src文件夹下面的config文件夹，并且将default.js文件内容拷贝到根目录下的config文件夹
      */
     private async _configWillLoad() {
         const configDir: string = this.configDir;
+        console.log('configDir: ' + configDir)
+        // await ConfigContainer.createFile('./config.default.js',configDir);
         await ConfigContainer.registerConfig(configDir);
 
         this._configs = ConfigContainer;
-        await this._beforeReady();// 对于应用而言，我们应该写在在loading过程中调用，所有方法并行执行，用来检测连接状态
 
-        // 执行 app configWillLoad 生命周期方法
         'configWillLoad' in this ? await (this as any).configWillLoad() : null;
     }
 
     /**
-     * @function app-lifeCycle/pluginWillLoad
-     * @param null
+     * @description 加载配置
+     * @param path 
      */
-    private async _pluginWillLoad() {
-        const pluginDir: string = this.pluginDir;
-        await PluginContainer.registerPlugin(pluginDir);
+    private async _configdidLoad(path: string) {
+        const appConfig = this._configs._configRoot;
+        console.log('这是appConfig：', appConfig);
+        const config = require(appConfig + '/config.local.js');
 
-        this._plugins = PluginContainer;
+        if (config.debug) {
+            // await this.beforeReady();
+            console.log('本地测试端口：', config.port)
 
-        'pluginWillLoad' in this ? await (this as any).pluginWillLoad() : null;
+        }
+        // console.log(this.statusIds,appConfig);
+        'configdidLoad' in this ? await (this as any).configdidLoad() : null;
     }
 
-    private async _configdidLoad(appConfig: string) {
-        // 所有配置已经加载完毕
-        appConfig = this._configs._configRoot;
-        // let dist:string = appConfig + '/config.default';
-        // console.log('dist:', dist);
-        let load_status: boolean = this.createFile('./config.default', appConfig);
-        if (load_status) {
-            console.log('_configDidLoad success');
+    /**
+     * @description 本地默认插件即将加载
+     */
+    private async pluginWillLoad() {
+
+        const pluginDir = path.join(__dirname, 'plugins');
+        console.log('pluginDir: ', pluginDir);
+        const names = Fs.readdirSync(pluginDir);
+        for (const name of names) {
+            const p = path.resolve(pluginDir, name);
+            const stat = Fs.statSync(p);
+            // console.log(stat);
+            if (name.endsWith('.json')) {
+                try {
+                    const plugin = require(p);
+                    console.info(plugin);  
+                }
+                catch (err) {
+                    console.log(`[TYPED] [ERR] ${path} load error`);
+                }
+            }
         }
-        // console.log('生成appconfig配置:'+ appConfig);
-        // 可以用来加载应用自定义的文件，启动自定义的服务
+
+    
     }
 
-    private _pluginDidLoad(pluginConfig: string) {
-        pluginConfig = this._plugins._pluginRoot;
+    /**
+     * @description 本地插件加载,
+     */
+    private async pluginDidLoad() {
+    //    this._app.
 
-        let load_status: boolean = this.createFile('./plugin.default', pluginConfig);
-        if (load_status) {
-            console.log('_pluginDidLoad success');
-        }
 
     }
 
     /**
-     * @description _beforeReady在此基础框架中留空，之后如果需要有db的连接再自行定义方法
+     * @description 监听http端口
      */
-    private async _beforeReady() {
-        console.log('_beforeReady：检查数据库的连接或者其他外部连接的状态')
-    }
+    private async ready() {
+        // const config = require(this._configs._configRoot+'/config.local.js');
+        // console.log(config)
+        console.log("Application Server starting now  ^_^ ^_^");
+        // this.server.listen(()=>{
+        //     try {
+        //         ConfigContainer.get('app.server.port' || config.port)
+        //     } catch (err) {
+        //         console.info(err);
+        //     }
+        // });
 
-    private async _ready() {
-        console.log('Application server starting ^.^');
-        this.server.listen(ConfigContainer.get('app.server.port') || 7777);
-        // console.log('_ready,HttpServer 的监听这个时候开始');
-    }
-
-    private async _afterReady() {
-        console.log('server run at the : localhost:7777');
-        // this.server.listen(7777);
-        // this.server.removeListener(7777);
-        // console.log('_afterReady: 留空');
-    }
-
-    private async _beforeClose() {
-        this.server.close();
+        const config = require(this._configs._configRoot + '/config.local.js');
+        this.server.listen(ConfigContainer.get('app.server.port') || config.port);
     }
 
     /**
-     * @description plugin-lifeCycle 的初始化函数
-     * @author 铁歌
+     * @description 在loading过程中调用
      */
-    private async init() {
-
+    private async beforeReady() {
+        await this.ready();
+        console.log('my client is ready');
     }
-    private async createFile(src: string, dist: string) {
-        try {
-            child_process.spawn('cp', ['r', src, dist]);
-
-            return true;
-        }
-        catch (error) {
-            console.log(error);
-        }
-    }
-
 
 }
+
+
+// import * as http from 'http';
+// import * as Fs from 'fs';
+
+// import * as Koa from 'koa';
+// import { ApplicationRegistry } from './ApplicationRegistry';
+// import { ConfigContainer } from './config/ConfigContainer';
+// import { MiddlewareInitializer } from './initializer/MiddlewareInitializer';
+// import { Router } from './plugins/Router';
+// import { ControllerRegistry } from './core/ControllerRegistry';
+
+// export class Application {
+//     // 变量
+//     private _env: string;
+
+//     // 项目根目录，默认是 process.cwd()
+//     private _rootDir: string = process.cwd();
+
+//     // http-server 应用, koa底层
+//     private _server: http.Server;
+//     private _app: Koa;
+
+//     //配置文件夹
+//     private _configDir: string;
+
+//     // 配置管理器
+//     private _configs: typeof ConfigContainer;
+
+//     //路由器
+//     private _router = Router;
+
+//     get configDir(): string {
+//         return this._configDir;
+//     }
+
+//     get env() {
+//         return this._env;
+//     }
+
+//     get rootDir() {
+//         return this._rootDir;
+//     }
+
+//     get server() {
+//         return this._server;
+//     }
+
+//     get configs() {
+//         return this._configs;
+//     }
+
+//     get koaApp() {
+//         return this._app;
+//     }
+
+//     get router() {
+//         return this._router;
+//     }
+
+//     /**
+//      * @description framework start 
+//      * @author tiege 
+//      * @private
+//      * 
+//      */
+//     async start(){
+//         await this._invokeApplicationInitHook();
+
+//         this.server.listen(ConfigContainer.get('app.server.port') || 7777);
+//     }
+
+//     use(fn: any) {
+//         this._app.use(fn);
+//     }
+
+//     /**
+//      * @description create httpServer with koa
+//      * @author tunan
+//      * @private
+//      * @memberof Application
+//      */
+//     private _createServer() {
+//         this._app = new Koa();
+//         this._server = http.createServer(this._app.callback());
+//     }
+
+//     /**
+//      * @description 执行生命周期函数加载，并串行执行
+//      * @author tunan
+//      * @private
+//      * @memberof Application
+//      */
+//     private async _invokeApplicationInitHook() {
+//         // 初始化 http-server
+//         this._createServer();
+//         await this._init();
+//         // await AppBootHook.configWillLoad();
+//         await this._configWillLoad();
+//         // await this._configdidLoad()
+//         this.loadRoutes();
+
+//     }
+
+//     private async loadRoutes() {
+//         const routers = ControllerRegistry.getRoutes();
+
+//         routers.forEach(router => {
+//             this._app.use(router.routes())
+//                      .use(router.allowedMethods());
+//         });
+//     }
+
+//     /**
+//      * @description 私有生命周期函数，初始化状态
+//      * @author tunan
+//      * @private
+//      * @memberof Application
+//      */
+//     private async _init() {
+//         const settings = ApplicationRegistry.settings;
+
+//         // 初始化配置目录
+//         ['log', 'config'].map(item => {
+//             this[`_${item}Dir`] = settings[`${item}Dir`] || `${this._rootDir}/${item}`;
+
+//             // 目录不存在则创建目录
+//             if (!Fs.existsSync(this[`_${item}Dir`]) && this._env !== 'test') {
+//                 Fs.mkdirSync(this[`_${item}Dir`]);
+//             }
+//         });
+
+//         // 加载默认 middlewares
+//         MiddlewareInitializer.init(this);
+
+//         // 执行 app init 方法
+//         'init' in this ? await (this as any).init() : null;
+//     }
+
+
+//     private async _configWillLoad() {
+//         const configDir: string = this.configDir;
+//         await ConfigContainer.registerConfig(configDir);
+
+//         this._configs = ConfigContainer;
+
+//         // 执行插件 configWillLoad 生命周期, 暂时没有定义这个私有方法
+//         // this._loadPluginConfigWillLoad();
+
+//         // 执行 app configWillLoad 生命周期方法
+//         'configWillLoad' in this ? await (this as any).configWillLoad() : null;
+//     }
+
+//     /**
+//      * @description 加载配置
+//      * @param path 
+//      */
+//     private async _configdidLoad(path: string) {
+//         const appConfig = this._configs._configRoot;
+//         console.log('这是appConfig：',appConfig);
+//         const config = require(appConfig+'/config.local.js');
+
+//         if(config.debug) {
+//             await this.beforeReady();
+//             console.log('本地测试端口：',config.port)
+
+//         }
+
+//         // console.log(this.statusIds,appConfig);
+//         'configdidLoad' in this ? await (this as any).configdidLoad() : null;
+//     }
+
+//     /**
+//      * @description 监听http端口
+//      */
+//     private async ready() {
+//         const config = require(this._configs._configRoot+'/config.local.js');
+//         console.log("Application Server starting now  ^_^ ^_^");
+//         this.server.listen(ConfigContainer.get('app.server.port' || config.port));
+//     }
+
+//     /**
+//      * @description 在loading过程中调用
+//      */
+//     private async beforeReady(){
+//         await this.ready();
+//         console.log('my client is ready');
+//     }
+
+// }

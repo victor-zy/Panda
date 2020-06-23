@@ -4,10 +4,10 @@ import { Middleware } from 'koa';
 export class Router {
     private static _routers: KoaRouter[] = [new KoaRouter()];
 
-    private static _addRouter(method: string, path: string|string[]|Middleware, args: Middleware[]) {
+    private static _addRouter(method:string, path: string|string[] |Middleware, args: Middleware[]) {
         const [router] = this._routers;
         if (method in router && router[method] instanceof Function) {
-            router[method](path, ...args);
+            router[method] (path,...args);
         }
     }
 
@@ -53,4 +53,4 @@ export class Router {
 
         return router;
     }
-};
+}

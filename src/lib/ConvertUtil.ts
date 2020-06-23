@@ -1,4 +1,9 @@
 export class ConvertUtil {
+
+    /**
+     * 希望之后有人能写下这个的注释
+     * @param data 
+     */
     public static convertArrayToMap(data: any[]): Map<number, any> {
         const ret = new Map<number, any>();
 

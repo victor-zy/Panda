@@ -2,16 +2,19 @@ import { HandlerParamMetadata } from './HandlerParamMetadata';
 import { HTTPMethodAndPath } from './HTTPMethodAndPath';
 
 export class HandlerMetadata {
+    // 变量
+    private _params: Map<number, HandlerParamMetadata>;
+
+    private _isErrorHandler: boolean;
+
     private _type: Function;
 
     private _actionName: string;
 
-    private _params: Map<number, HandlerParamMetadata>;
-
     private _httpMethodAndPaths: HTTPMethodAndPath[];
 
-    private _isErrorHandler: boolean;
-
+    
+    // 方法
     get params(): Map<number, HandlerParamMetadata> {
         return this._params;
     }
@@ -40,12 +43,12 @@ export class HandlerMetadata {
         this._isErrorHandler = value;
     }
 
-    constructor(type: Function, actionName: string, params?: Map<number, HandlerParamMetadata>, isErrorHandler?: boolean) {
+    constructor (type: Function, actionName: string,param?: Map<number,HandlerParamMetadata>, isErrorHandler?: boolean) {
         this._type = type;
         this._actionName = actionName;
 
-        if (typeof params !== 'undefined') {
-            this._params = params;
+        if (typeof param !== 'undefined'){
+            this._params = param;
         } else {
             this._params = new Map();
         }

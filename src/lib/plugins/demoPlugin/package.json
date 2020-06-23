@@ -1,0 +1,8 @@
+{
+    "name": "panda",
+    "version": "1.0.1",
+    "dependencies": {["demoplugin2"]},
+    "pandaPlugin": {
+        "name": "demoPlugin"
+    }
+}

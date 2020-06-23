@@ -2,22 +2,28 @@ import { ParamType } from './enum/ParamType';
 import { HandlerParamOptions } from './HandlerParamOptions';
 
 export class HandlerParamMetadata {
+    // 变量
+    private _required: boolean;
+
     private _type: Function;
-
-    private _actionName: string;
-
-    private _index: number;
-
-    private _returnType: Function;
 
     private _paramType: ParamType;
 
+    private _index:number;
+
     private _expression: string;
+
+    private _actionName: string;
+
+    private _returnType: Function;
 
     private _defaultValue: any;
 
-    private _required: boolean;
 
+
+
+
+    // 方法
     get required(): boolean {
         return this._required;
     }
@@ -50,7 +56,8 @@ export class HandlerParamMetadata {
         return this._defaultValue;
     }
 
-    constructor(type: Function,
+    constructor (
+        type: Function,
         actionName: string,
         index: number,
         returnType: Function,

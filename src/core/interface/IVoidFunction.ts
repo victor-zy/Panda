@@ -1,1 +1,3 @@
-export type IVoidFunction = (() => void);
+export type IVoidFunction = (
+    () => void
+);

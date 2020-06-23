@@ -1,1 +1,1 @@
-export * from './interface/IAppLifecycle';
+export * from './inteface/IAppLifecycle';
